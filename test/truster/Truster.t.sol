@@ -5,6 +5,7 @@ pragma solidity =0.8.25;
 import {Test, console} from "forge-std/Test.sol";
 import {DamnValuableToken} from "../../src/DamnValuableToken.sol";
 import {TrusterLenderPool} from "../../src/truster/TrusterLenderPool.sol";
+import {PoolExploiter} from "../../src/truster/PoolExploiter.sol";
 
 contract TrusterChallenge is Test {
     address deployer = makeAddr("deployer");
@@ -51,7 +52,14 @@ contract TrusterChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_truster() public checkSolvedByPlayer {
-        
+        // Player exploits the TrusterLenderPool to approve themselves to transfer tokens druing flashloan
+        // and then transfers the tokens to the recovery address.
+        new PoolExploiter(
+            address(pool),
+            address(token),
+            recovery,
+            TOKENS_IN_POOL
+        );
     }
 
     /**

