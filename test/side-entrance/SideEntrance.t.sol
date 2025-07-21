@@ -4,6 +4,7 @@ pragma solidity =0.8.25;
 
 import {Test, console} from "forge-std/Test.sol";
 import {SideEntranceLenderPool} from "../../src/side-entrance/SideEntranceLenderPool.sol";
+import {SideEntranceExploiter} from "./SideEntranceExploiter.sol";
 
 contract SideEntranceChallenge is Test {
     address deployer = makeAddr("deployer");
@@ -14,6 +15,7 @@ contract SideEntranceChallenge is Test {
     uint256 constant PLAYER_INITIAL_ETH_BALANCE = 1e18;
 
     SideEntranceLenderPool pool;
+    SideEntranceExploiter exploiter;
 
     modifier checkSolvedByPlayer() {
         vm.startPrank(player, player);
@@ -45,7 +47,8 @@ contract SideEntranceChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_sideEntrance() public checkSolvedByPlayer {
-        
+        exploiter = new SideEntranceExploiter(address(pool));
+        exploiter.exploit(ETHER_IN_POOL, recovery);
     }
 
     /**

